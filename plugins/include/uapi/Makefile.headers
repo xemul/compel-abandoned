@@ -1,11 +1,12 @@
-plugin-header-y += std/std.h
+plugin-header-y += plugin-std.h
 plugin-header-y += std/string.h
 plugin-header-y += std/syscall-types.h
 plugin-header-y += std/syscall-codes.h
 plugin-header-y += std/syscall.h
+plugin-header-y += std/argv.h
 
 plugin-header-y += asm-generic/int.h
 plugin-header-y += asm/sigset.h
 
-plugin-header-y += fds.h
-plugin-header-y += shmem.h
+plugin-header-y += plugin-fds.h
+plugin-header-y += plugin-shmem.h

@@ -13,7 +13,7 @@ SYNOPSIS
 --------
 *compel* 'command' ['options']
 
-*compel* run <file> -t <pid>
+*compel* run -f <compel-file> -p <pid> [-- <options-for-parasite>]
 
 *compel* pack <file1> [<file2>] [-L<dir>] [-llib1] [-o out]
 
@@ -29,10 +29,10 @@ Commands
 ~~~~~~~~
 
 *run*::
-    Initiate execution procedure.
+    Run compiled and packed file in remote process context.
 
 *pack*::
-    Pack object file into a form suitable for execution.
+    Pack object file into a compel-file -- the form suitable for remote execution.
 
 *cflags*::
     Print the compiler flags needed to compile plugin object files.
@@ -46,14 +46,15 @@ OPTIONS
 Action 'run'
 ~~~~~~~~~~~~
 
-<file>::
-    The name of binary blob object to be executed.
+*-f*, *--cfile* 'file'::
+    The name of packed file to be executed.
 
-*-t*, *--tree* 'pid'::
+*-p*, *--pid* 'pid'::
     Destination task identified by 'pid'.
 
-*-a*, *--plugin-args* 'string'::
-    A 'string' used to for command line arguments passed to plugins entry point.
+<options-for-parasite>::
+    Options to be passed to parasite code. See compel-plugins document for
+    details about how to access those from parasite.
 
 Action 'pack'
 ~~~~~~~~~~~~~
@@ -62,7 +63,7 @@ Action 'pack'
     Add directory 'path' to the list of directories to be searched for
     resources (*-l* option and linker scripts).
 
-*l*, *--library* 'name'::
+*-l*, *--library* 'name'::
     Search the library named 'name' when linking. The following libraries
     are always linked in even if not specified in command line: *std*.
 

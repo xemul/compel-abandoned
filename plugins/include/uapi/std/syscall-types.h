@@ -56,18 +56,4 @@ typedef struct {
 	unsigned int	lm:1;
 } user_desc_t;
 
-#ifndef F_SETOWN_EX
-#define F_SETOWN_EX	15
-#define F_GETOWN_EX	16
-
-struct f_owner_ex {
-	int	type;
-	pid_t	pid;
-};
-#endif
-
-#ifndef F_GETOWNER_UIDS
-#define F_GETOWNER_UIDS	17
-#endif
-
 #endif /* __COMPEL_PLUGIN_STD_SYSCALL_TYPES_H__ */

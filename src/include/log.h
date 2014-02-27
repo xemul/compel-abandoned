@@ -9,16 +9,12 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#include "uapi/libcompel-loglevels.h"
+#include "uapi/log-levels.h"
 
 #ifndef LOG_PREFIX
 # define LOG_PREFIX
 #endif
 
-extern void log_set_fd(int fd);
-extern void loglevel_set(unsigned int loglevel);
-extern unsigned int loglevel_get(void);
-extern bool pr_quelled(unsigned int loglevel);
 extern void print_on_level(unsigned int loglevel, const char *format, ...);
 
 #define pr_msg(fmt, ...)							\

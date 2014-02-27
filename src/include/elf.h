@@ -3,8 +3,6 @@
 
 #include <sys/types.h>
 #include <elf.h>
-
-#include "uapi/libcompel.h"
 #include "asm/elf.h"
 
 typedef struct load_info_s {

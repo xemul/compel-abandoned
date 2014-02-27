@@ -21,26 +21,27 @@ static unsigned int current_loglevel = DEFAULT_LOGLEVEL;
 static char logbuf[PAGE_SIZE];
 static int logfd = -1;
 
-void log_set_fd(int fd)
+static void log_set_fd(int fd)
 {
 	if (logfd != -1)
 		close(logfd);
 	logfd = fd;
 }
 
-void loglevel_set(unsigned int loglevel)
+static void loglevel_set(unsigned int loglevel)
 {
 	current_loglevel = loglevel;
 }
 
-unsigned int loglevel_get(void)
+void libcompel_log_init(int fd, unsigned int level)
 {
-	return current_loglevel;
+	log_set_fd(fd);
+	loglevel_set(level);
 }
 
-bool pr_quelled(unsigned int loglevel)
+static inline bool pr_quelled(unsigned int loglevel)
 {
-	return loglevel != LOG_MSG && loglevel > loglevel_get();
+	return loglevel != LOG_MSG && loglevel > current_loglevel;
 }
 
 static void __print_on_level(unsigned int loglevel, const char *format, va_list params)

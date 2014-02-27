@@ -18,56 +18,25 @@ INTERFACE
 *void libcompel_version*(*unsigned int* \*'major', *unsigned int* \*'minor', *unsigned int* *'sublevel')::
     This function returns 'major', 'minor' and 'sublevel' version of the library.
 
-*void *libcompel_exec_start*(*pid_t* 'pid', *argv_desc_t* \*'argv_desc', *int* *'err')::
-    This function injects an object file described in 'argv_desc' in the process address
-    space identified by 'pid' and initiate its execution. The file must be previously packed
-    with help of *compel* tool. Returns pointer to execution context. On error
-    returns NULL and sets error code to 'err' (if 'err' is not NULL).
-
-'argv_desc' is object file descriptor as
+*int libcompel_exec*(*pid_t* 'pid', *char* \*'path', *void* \*'arg_p', *unsigned int* 'arg_s')::
+    This function runs the compel file 'path' (packed with compel tool) in the
+    address space of a process 'pid'. The 'arg_p' and 'arg_s' are pointer to
+    binary data and their size, that will be available in the parasitic code's
+    main function. The execution of the parasite code starts with the function
 
 -----------------------------------------------------------------
-typedef struct argv_desc_s {
-	char		*blob_path;	/* path to object file */
-	char		*blob_args;	/* arguments string    */
-} argv_desc_t;
+int main(void *arg_p, unsigned int arg_s);
 -----------------------------------------------------------------
 
-*int libcompel_exec_end*(*void* *'ptr')::
-    Waits to finish execution of context pointed by 'ptr'.
+    The function returns after the parasite code's main finishes.
 
-*void *libcompel_exec_elf*(*pid_t* 'pid', *argv_desc_t* *'argv_desc')::
-    This function executes an object file described in 'argv_desc' in the process address
-    space identified by 'pid'. The file must be previously packed with help of *compel* tool.
+*parasite_exec_handle_t libcompel_exec_start*(*pid_t* 'pid', *char* \*'path', *void* \*'arg_p', *unsigned int* 'arg_s')::
+    This function starts the compel file, but returns immediatelly after parasite
+    starts executing. To wait for it to finish and unload use the next function.
 
-*void libcompel_log_set_fd*(*int* 'fd')::
-    Make library to use 'fd' file descriptor to write debug/error messages to.
-    By default 'fd' is set to -1 thus all messages are suppressed.
-
-*void libcompel_loglevel_set*(*unsigned int* 'loglevel')::
-    Set library logging level to 'loglevel'. The value may be one of:
-    1 - error, 2 - warnings, 3 - informative, 4 - debug.
-    By default the logging level is set to 2.
-
-*int libcompel_get_ctl_socket*(*void* *'ptr')::
-    Returns a control socket created in execution context pointed by 'ptr' which
-    can be used to talk to plugins (plugins have own api to fetch this socket).
-
-*int libcompel_get_rt_blob_desc*(*void* \*'ptr', *blob_rt_desc_t* *'d')::
-    Fills run time descriptor of executing binary blob 'd' created in context
-    pointed by 'ptr'.
-
------------------------------------------------------------------
-typedef struct blob_rt_desc_s {
-	pid_t		pid;		/* pid of victim process */
-
-	unsigned long	init_args_at;	/* parasite init arguments */
-	size_t		init_args_size;	/* their size */
-
-	void		*remote_map;	/* remote address of a parasite */
-	void		*local_map;	/* local address of a parasite */
-} blob_rt_desc_t;
------------------------------------------------------------------
+*int libcompel_exec_end*(parasite_exec_handle_t h)::
+    This one waits for parasite termination and unloads it. Return value of the
+    parasite is reported back.
 
 AUTHOR
 ------

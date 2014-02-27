@@ -1,3 +1,7 @@
+/*
+ * plugins.h -- declarations needed for writing a plugin
+ */
+
 #ifndef __UAPI_LIBCOMPEL_PLUGIN_H__
 #define __UAPI_LIBCOMPEL_PLUGIN_H__
 
@@ -8,7 +12,7 @@
 
 typedef struct {
 	const char	*name;
-	int		(*init)(int argc, char *argv[]);
+	int		(*init)(void);
 	void		(*exit)(void);
 } plugin_init_t;
 
@@ -24,16 +28,9 @@ typedef struct {
 	};							\
 	plugin_register(__plugin_desc_##___id);
 
-#define plugin_init_count(size)	((size) / (sizeof(plugin_init_t *)))
-
-static inline int dummy_plugin_init(int argc, char *argv[]) { return 0; }
-static inline void dummy_plugin_fini(void) { }
-
 #define PLUGIN_REGISTER_DUMMY(___id)				\
 	static const plugin_init_t __plugin_desc_##___id = {	\
 		.name = #___id,					\
-		.init = dummy_plugin_init,			\
-		.exit = dummy_plugin_fini,			\
 	};							\
 	plugin_register(__plugin_desc_##___id);
 

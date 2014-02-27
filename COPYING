@@ -1,3 +1,18 @@
+This software is licenced under the GNU GENERAL PUBLIC LICENCE Version 2.
+The plugins code located in plugins/ directoly is licensed under the GNU
+LESSER GENERAL PUBLIC LICENCE Version 2.1.
+
+In other words -- programs linked with libcompel.so should be under some
+GPL-compatible license, but the code that is about to be linked with the
+plugins and then injected into victim may be under any license.
+
+Contributing Authors agree that their code is submitted under the licence 
+appropriate for its location within the source tree (GPL except for LGPL
+in plugins/) and agree that any future patches, provided they are accepted
+into the project, may change the licence of their code from GPL to LGPL by
+moving pieces of it into plugins/ or LGPL to GPL by moving pieces of it
+out of plugins/
+
 Note that the only valid version of the GPL is THIS particular version
 of the license (ie v2, not v2.2 or v3.x or whatever), unless explicitly
 otherwise stated.

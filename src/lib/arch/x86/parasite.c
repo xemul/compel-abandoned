@@ -86,9 +86,8 @@ void parasite_fixup_thread_ctx(thread_ctx_t *ctx)
 	}
 }
 
-void parasite_prepare_sigframe(void *ctl)
+void parasite_prepare_sigframe(parasite_ctl_t *c, unsigned long sigframe_at)
 {
-	parasite_ctl_t *c = ctl;
 	rt_sigframe_t *sigframe;
 
 	/*
@@ -97,7 +96,7 @@ void parasite_prepare_sigframe(void *ctl)
 	 * Note: SAS get constructed in std plugin, because
 	 * it can't be fetched here.
 	 */
-	sigframe = (void *)(c->sigframe_at);
+	sigframe = (void *)sigframe_at;
 	memzero(sigframe, sizeof(*sigframe));
 
 	sigframe->uc.uc_mcontext.r8	= c->thread_ctx_orig.regs.r8;

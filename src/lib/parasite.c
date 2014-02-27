@@ -19,7 +19,6 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
-#include "libcompel.h"
 #include "compiler.h"
 #include "parasite.h"
 #include "ptrace.h"
@@ -406,7 +405,7 @@ static int gen_std_saddr(struct sockaddr_un *saddr, int key)
 	return sun_len;
 }
 
-static parasite_ctl_t *parasite_ctl_init(pid_t pid, argv_desc_t *argv_desc)
+static parasite_ctl_t *parasite_ctl_init(pid_t pid, char *blob_path, void *arg_p, unsigned int arg_s)
 {
 	prologue_init_args_t *args;
 	unsigned long start, end;
@@ -416,10 +415,12 @@ static parasite_ctl_t *parasite_ctl_init(pid_t pid, argv_desc_t *argv_desc)
 	int ret = -1, fd;
 	char path[128];
 	int plugin_fd;
+	unsigned long init_args_at;
+	unsigned long sigframe_at;
 
-	plugin_fd = open(argv_desc->blob_path, O_RDONLY);
+	plugin_fd = open(blob_path, O_RDONLY);
 	if (plugin_fd < 0) {
-		pr_perror("Can't open %s", argv_desc->blob_path);
+		pr_perror("Can't open %s", blob_path);
 		return NULL;
 	}
 
@@ -432,12 +433,7 @@ static parasite_ctl_t *parasite_ctl_init(pid_t pid, argv_desc_t *argv_desc)
 	ctl->ctl_accepted = -1;
 
 	if (fstat(plugin_fd, &plugin_st)) {
-		pr_perror("Failed to obtain statistics on %s", argv_desc->blob_path);
-		goto err;
-	}
-
-	if (task_in_compat_mode(pid)) {
-		pr_err("Can't operate task %d in compatible mode\n", pid);
+		pr_perror("Failed to obtain statistics on %s", blob_path);
 		goto err;
 	}
 
@@ -454,16 +450,15 @@ static parasite_ctl_t *parasite_ctl_init(pid_t pid, argv_desc_t *argv_desc)
 		goto err;
 	}
 	parasite_fixup_thread_ctx(&ctl->thread_ctx_orig);
+	ctl->map_length = round_up(plugin_st.st_size + arg_s, PAGE_SIZE);
 
-	ctl->remote_map = parasite_mmap_seized(ctl, NULL, plugin_st.st_size + COMPEL_ARGV_SIZE,
+	ctl->remote_map = parasite_mmap_seized(ctl, NULL, ctl->map_length,
 					       PROT_READ | PROT_WRITE | PROT_EXEC,
 					       MAP_ANONYMOUS | MAP_SHARED, -1, 0);
 	if (!ctl->remote_map) {
 		pr_err("Can't allocate memory for parasite blob (pid: %d)\n", ctl->pid);
 		goto err;
 	}
-
-	ctl->map_length = round_up(plugin_st.st_size + COMPEL_ARGV_SIZE, PAGE_SIZE);
 
 	snprintf(path, sizeof(path), "/proc/%d/map_files/%p-%p",
 		 ctl->pid, ctl->remote_map, ctl->remote_map + ctl->map_length);
@@ -503,44 +498,49 @@ static parasite_ctl_t *parasite_ctl_init(pid_t pid, argv_desc_t *argv_desc)
 
 	pr_info("Putting exec blob into l:%p -> r:%p\n", ctl->local_map, ctl->remote_map);
 	if (read(plugin_fd, ctl->local_map, plugin_st.st_size) != plugin_st.st_size) {
-		pr_perror("Failed to read plugin %s code", argv_desc->blob_path);
+		pr_perror("Failed to read plugin %s code", blob_path);
 		goto err;
 	}
+
+	if (arg_p)
+		memcpy(ctl->local_map + plugin_st.st_size, arg_p, arg_s);
+	else
+		memzero(ctl->local_map + plugin_st.st_size, arg_s);
 
 	info.len	= plugin_st.st_size;
 	info.hdr	= ctl->local_map;
 	info.addr_delta	= ctl->remote_map - ctl->local_map;
 
 	pr_debug("Loading plugin %s (size %ld delta %lx)\n",
-		 argv_desc->blob_path, info.len, info.addr_delta);
+		 blob_path, info.len, info.addr_delta);
 
 	if (load_elf_plugin(&info)) {
-		pr_err("Failed to load plugin %s\n", argv_desc->blob_path);
+		pr_err("Failed to load plugin %s\n", blob_path);
 		goto err;
 	}
 
 	ctl->entry_ip = lookup_elf_plugin_remote_symbol(&info, "__export_std_prologue_start");
-	ctl->sigframe_at = lookup_elf_plugin_local_symbol(&info, "__export_std_prologue_sigframe");
-	ctl->init_args_at = lookup_elf_plugin_local_symbol(&info, "__export_std_prologue_init_args");
+	sigframe_at = lookup_elf_plugin_local_symbol(&info, "__export_std_prologue_sigframe");
+	init_args_at = lookup_elf_plugin_local_symbol(&info, "__export_std_prologue_init_args");
 
 	pr_debug("Parasite code: entry_ip %p sigframe_at %lx init_args_at %lx\n",
-		 ctl->entry_ip, ctl->sigframe_at, ctl->init_args_at);
+		 ctl->entry_ip, sigframe_at, init_args_at);
 
-	if (!ctl->entry_ip || !ctl->sigframe_at || !ctl->init_args_at) {
+	if (!ctl->entry_ip || !sigframe_at || !init_args_at) {
 		pr_err("Not all symbols needed found, corrupted file?\n");
 		goto err;
 	}
 
-	parasite_prepare_sigframe(ctl);
+	parasite_prepare_sigframe(ctl, sigframe_at);
 
 	/*
 	 * Lets open control socket.
 	 */
-	args = (prologue_init_args_t *)ctl->init_args_at;
+	args = (prologue_init_args_t *)init_args_at;
 	args->ctl_sock_addr_len = gen_std_saddr(&args->ctl_sock_addr, getpid());
-	args->argc = 0;
-	args->argv = NULL;
-	args->sigframe = (void *)ctl->remote_map + ((void *)ctl->sigframe_at - ctl->local_map);
+	args->arg_s = arg_s;
+	args->arg_p = ctl->remote_map + plugin_st.st_size;
+	args->sigframe = (void *)ctl->remote_map + ((void *)sigframe_at - ctl->local_map);
 
 	ctl->ctl_sock = socket(PF_UNIX, SOCK_SEQPACKET, 0);
 	if (ctl->ctl_sock < 0) {
@@ -555,11 +555,6 @@ static parasite_ctl_t *parasite_ctl_init(pid_t pid, argv_desc_t *argv_desc)
 
 	if (listen(ctl->ctl_sock, 1) < 0) {
 		pr_perror("Can't listen on control socket");
-		goto err;
-	}
-
-	if (libcompel_fill_argv(ctl, &info, argv_desc)) {
-		pr_err("Failed to setup arguments for plugins\n");
 		goto err;
 	}
 
@@ -578,34 +573,7 @@ err_restore:
 	goto err;
 }
 
-int parasite_get_rt_blob_desc(void *ptr, blob_rt_desc_t *d)
-{
-	parasite_ctl_t *ctl = ptr;
-
-	if (IS_ERR_OR_NULL(ctl))
-		return (int)PTR_ERR(ctl);
-
-	*d = (blob_rt_desc_t) {
-		.pid		= ctl->pid,
-		.init_args_at	= ctl->init_args_at,
-		.init_args_size	= PROLOGUE_INIT_ARGS_SIZE,
-		.remote_map	= ctl->remote_map,
-		.local_map	= ctl->local_map,
-	};
-	return 0;
-}
-
-int parasite_get_ctl_socket(void *ptr)
-{
-	parasite_ctl_t *ctl = ptr;
-
-	if (IS_ERR_OR_NULL(ctl))
-		return (int)PTR_ERR(ctl);
-
-	return ctl->ctl_sock;
-}
-
-void *parasite_exec_start(pid_t pid, argv_desc_t *argv_desc)
+parasite_ctl_t *parasite_start(pid_t pid, char *path, void *arg_p, unsigned int arg_s)
 {
 	user_regs_struct_t regs;
 	parasite_ctl_t *ctl;
@@ -618,8 +586,13 @@ void *parasite_exec_start(pid_t pid, argv_desc_t *argv_desc)
 		return ERR_PTR(-1);
 	}
 
+	if (task_in_compat_mode(pid)) {
+		pr_err("Can't operate task %d in compatible mode\n", pid);
+		goto err_unseize;
+	}
+
 	pr_debug("Initialize parasite control block\n");
-	ctl = parasite_ctl_init(pid, argv_desc);
+	ctl = parasite_ctl_init(pid, path, arg_p, arg_s);
 	if (!ctl)
 		goto err_unseize;
 
@@ -638,7 +611,7 @@ void *parasite_exec_start(pid_t pid, argv_desc_t *argv_desc)
 	}
 
 	ctl->task_state = task_state;
-	return (void *)ctl;
+	return ctl;
 
 recover:
 	ret |= parasite_ctl_fini(ctl);
@@ -649,7 +622,7 @@ err_unseize:
 	return ERR_PTR(ret);
 }
 
-int parasite_exec_end(void *ptr)
+int parasite_end(parasite_ctl_t *ptr)
 {
 	parasite_ctl_t *ctl = ptr;
 	int task_state;
@@ -724,9 +697,4 @@ recover:
 
 	ret |= unseize_task(pid, task_state);
 	return ret;
-}
-
-int parasite_exec(pid_t pid, argv_desc_t *argv_desc)
-{
-	return parasite_exec_end(parasite_exec_start(pid, argv_desc));
 }

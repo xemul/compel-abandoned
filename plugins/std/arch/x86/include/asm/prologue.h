@@ -16,8 +16,8 @@ typedef struct prologue_init_args {
 	struct sockaddr_un	ctl_sock_addr;
 	unsigned int		ctl_sock_addr_len;
 
-	int			argc;
-	char			**argv;
+	unsigned int		arg_s;
+	void			*arg_p;
 
 	void			*sigframe;
 } prologue_init_args_t;

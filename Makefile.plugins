@@ -3,6 +3,7 @@ plugins		+= shmem
 plugins		+= fds
 
 dep-fds		:= std
+dep-shmem	:= std
 
 define gen-plugin-rule
 ifneq ($(2),)

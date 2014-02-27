@@ -1,30 +1,24 @@
 #include <sys/types.h>
 
-#include "uapi/libcompel-plugin.h"
-#include "uapi/std/syscall.h"
-#include "uapi/std/string.h"
-#include "uapi/std/std.h"
+#include "uapi/plugins.h"
+#include "uapi/plugin-std.h"
+#include "std-priv.h"
 
 #include "asm/prologue.h"
 #include "asm/sigframe.h"
 
 #include "version.h"
 
-extern int main(int argc, char *argv[]);
+extern int main(void *arg_p, unsigned int arg_s);
 
 const int __export_std_compel_version = COMPEL_VERSION_CODE;
 
 static struct prologue_init_args *init_args;
 static int ctl_socket = -1;
 
-int std_get_ctl_socket(void)
+int std_ctl_sock(void)
 {
 	return ctl_socket;
-}
-
-void *std_get_prologue_init_args_addr(void)
-{
-	return (void *)init_args;
 }
 
 static int init_socket(struct prologue_init_args *args)
@@ -60,6 +54,8 @@ err:
 	return ret;
 }
 
+#define plugin_init_count(size)	((size) / (sizeof(plugin_init_t *)))
+
 int __export_std_compel_start(struct prologue_init_args *args,
 			      const plugin_init_t * const *init_array,
 			      size_t init_size)
@@ -77,14 +73,14 @@ int __export_std_compel_start(struct prologue_init_args *args,
 		const plugin_init_t *d = init_array[i];
 
 		if (d && d->init) {
-			ret = d->init(args->argc, args->argv);
+			ret = d->init();
 			if (ret)
 				break;
 		}
 	}
 
 	if (!ret)
-		ret = main(args->argc, args->argv);
+		ret = main(args->arg_p, args->arg_s);
 
 	for (; i > 0; i--) {
 		const plugin_init_t *d = init_array[i - 1];

@@ -25,12 +25,7 @@ and exports the following routines.
 std.h
 ^^^^^
 
-*int std_get_ctl_socket*(void)::
-    Returns control socket which might be used to exchange data between plugins
-    and libcompel itself.
-
-*void *std_get_prologue_init_args_addr*(void)::
-    Returns address of initial arguments area used by prologue code.
+This is cumulative file for all the standard stuff (see below).
 
 string.h
 ^^^^^^^^
@@ -60,8 +55,8 @@ string.h
 syscall.h
 ^^^^^^^^^
 
-There are a number of syscalls the plugin provides. See detailed list in
-the header file itself.
+This one includes all the system calls, that your blob may call.
+Syscalls are names sys_<name> and match Linux kernel prototype.
 
 fds
 ~~~
@@ -71,29 +66,11 @@ This plugin stands for file descriptor exchange over unix socket.
 fds.h
 ^^^^^
 
-*int send_fds*(*int* 'sock', *struct sockaddr_un* \*'saddr', *int* 'len', *int* \*'fds', *int* 'nr_fds', *bool* 'with_flags')::
-    Send 'nr_fds' amount of file descriptors pointed by 'fds' via socked 'sock'
-    to 'saddr' destination (the length of address is specified by 'len'). The
-    flag 'with_flags' tells the routine to fetch file flags for every descriptor
-    before sending them out.
+*int fds_send_one*(*int* \*'fd')::
+    Sends 'fd' file descriptor to master process.
 
-*int recv_fds*(*int* 'sock', *int* \*'fds', *int* 'nr_fds', *struct fd_opts* *'opts')::
-    Receive file descriptors from socket 'sock' sent by *send_fds*. The structure 'fd_opts'
-    is filled by *send_fds* routine if 'with_flags' option was specifed.  Internally *send_fds*
-    uses *fcntl*() syscall with *F_GETFD*, *F_GETOWN_EX*, *F_GETOWNER_UIDS* flags to fetch them.
-
----------------------------------------------------------------------
-struct fd_opts {
-	char		flags;
-	struct {
-		u32	uid;
-		u32	euid;
-		u32	signum;
-		u32	pid_type;
-		u32	pid;
-	} fown;
-};
----------------------------------------------------------------------
+*int fds_recv_one*()::
+    Receive file descriptor from master process.
 
 AUTHOR
 ------

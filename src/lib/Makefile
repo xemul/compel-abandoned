@@ -5,6 +5,8 @@ obj-y			+= ptrace.o
 obj-y			+= compel.o
 obj-y			+= argv.o
 obj-y			+= log.o
+obj-y			+= fds.o
+obj-y			+= shmem.o
 
 obj-y			+= arch/$(ARCH)/ptrace.o
 obj-y			+= arch/$(ARCH)/parasite.o

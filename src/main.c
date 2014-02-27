@@ -14,7 +14,7 @@
 #include "version.h"
 #include "xmalloc.h"
 
-#include "libcompel.h"
+#include "uapi/compel.h"
 #include "err.h"
 #include "log.h"
 
@@ -25,7 +25,8 @@
 #define COMPEL_LDS		"pack.lds.S"
 #define COMPEL_STD		"std.compel.o"
 
-static int pack(char **obj, size_t nobj, const char *lib_path, char **libs, size_t nlibs, char *out)
+static int pack_compel_obj(char **obj, size_t nobj,
+		const char *lib_path, char **libs, size_t nlibs, char *out)
 {
 	char command[1024] = { 0 };
 	char data[1024] = { 0 };
@@ -84,24 +85,35 @@ int main(int argc, char *argv[])
 	int opt, idx;
 
 	char *lib_path = NULL;
-	char *blob_args = NULL;
 	size_t nlibs = 0;
 	char *out = NULL;
 	char *libs[512];
 	pid_t pid = 0;
+	char *action;
+	char *blob = NULL;
 
-	const char short_opts[] = "t:l:v:o:L:a:";
+	const char short_opts[] = "f:p:l:v::o:L:Vh";
 	static struct option long_opts[] = {
-		{ "tree",		required_argument,	0, 't' },
+		/*
+		 * Options for run
+		 */
+		{ "pid",		required_argument,	0, 'p' },
+		{ "cfile",		required_argument,	0, 'f' },
+
+		/*
+		 * Options for pack
+		 */
 		{ "library",		required_argument,	0, 'l' },
 		{ "out",		required_argument,	0, 'o' },
 		{ "library-path",	required_argument,	0, 'L' },
+
+		/*
+		 * Other options
+		 */
 		{ "version",		no_argument,		0, 'V' },
-		{ "plugin-args",	required_argument,	0, 'a' },
+		{ "help",		no_argument,		0, 'h' },
 		{ },
 	};
-
-	libcompel_log_set_fd(STDOUT_FILENO);
 
 	while (1) {
 		opt = getopt_long(argc, argv, short_opts, long_opts, &idx);
@@ -109,8 +121,11 @@ int main(int argc, char *argv[])
 			break;
 
 		switch (opt) {
-		case 't':
+		case 'p':
 			pid = (pid_t)atol(optarg);
+			break;
+		case 'f':
+			blob = optarg;
 			break;
 		case 'l':
 			if (nlibs >= ARRAY_SIZE(libs)) {
@@ -129,13 +144,6 @@ int main(int argc, char *argv[])
 			 */
 			lib_path = optarg;
 			break;
-		case 'V':
-			pr_msg("version %s id %s\n", COMPEL_VERSION, COMPEL_GITID);
-			return 0;
-			break;
-		case 'a':
-			blob_args = optarg;
-			break;
 		case 'v':
 			if (optarg)
 				loglevel = atoi(optarg);
@@ -144,43 +152,61 @@ int main(int argc, char *argv[])
 			break;
 		default:
 			break;
+
+		case 'V':
+			printf("version %s id %s\n", COMPEL_VERSION, COMPEL_GITID);
+			return 0;
+		case 'h':
+			goto usage;
 		}
 	}
 
-	libcompel_loglevel_set(max(loglevel, (unsigned int)DEFAULT_LOGLEVEL));
+	libcompel_log_init(STDOUT_FILENO,
+			max(loglevel, (unsigned int)DEFAULT_LOGLEVEL));
 
 	if (optind >= argc)
 		goto usage;
 
-	if (!strcmp(argv[optind], "run")) {
-		argv_desc_t argv_desc = {
-			.blob_args	= blob_args,
-		};
+	action = argv[optind++];
 
-		if (!pid || ++optind >= argc)
-			goto usage;
-		argv_desc.blob_path	= argv[optind];
+	if (!strcmp(action, "run")) {
+		void *arg_p;
+		unsigned int arg_s;
 
-		return libcompel_exec_elf(pid, &argv_desc);
-	} else if (!strcmp(argv[optind], "pack")) {
-		if (!nlibs || ++optind >= argc)
+		if (!pid || !blob)
 			goto usage;
-		return pack(&argv[optind], argc - optind, lib_path, libs, nlibs, out);
-	} else if (!strcmp(argv[optind], "cflags")) {
-		pr_msg("-fpie -Wstrict-prototypes "
+
+		if (libcompel_pack_argv(blob, argc - optind, argv + optind, &arg_p, &arg_s))
+			return 1;
+
+		return libcompel_exec(pid, blob, arg_p, arg_s);
+	}
+
+	if (!strcmp(action, "pack")) {
+		if (optind >= argc)
+			goto usage;
+
+		return pack_compel_obj(argv + optind, argc - optind,
+				lib_path, libs, nlibs, out);
+	}
+
+	if (!strcmp(action, "cflags")) {
+		printf("-fpie -Wstrict-prototypes "
 		       "-Wa,--noexecstack -fno-jump-tables "
 		       "-nostdlib -fomit-frame-pointer");
 		return 0;
-	} else if (!strcmp(argv[optind], "ldflags")) {
-		pr_msg("-r");
+	}
+
+	if (!strcmp(action, "ldflags")) {
+		printf("-r");
 		return 0;
 	}
 
 usage:
-	pr_msg("\nUsage:\n");
-	pr_msg("  compel run <file> -t <pid>\n");
-	pr_msg("  compel pack <file1> [<file2>] [-L<dir>] [-llib1] [-o out]\n");
-	pr_msg("  compel cflags\n");
-	pr_msg("  compel ldflags\n");
+	printf("Usage:\n");
+	printf("  compel run -f <file> -t <pid>\n");
+	printf("  compel pack <files...> [-L<dir>] [-llibs] [-o out]\n");
+	printf("  compel cflags\n");
+	printf("  compel ldflags\n");
 	return -1;
 }

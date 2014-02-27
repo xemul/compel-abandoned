@@ -17,7 +17,7 @@ struct parasite_ctl_s;
 
 extern void parasite_setup_regs(unsigned long new_ip, void *stack, user_regs_struct_t *regs);
 extern void parasite_fixup_thread_ctx(thread_ctx_t *ctx);
-extern void parasite_prepare_sigframe(void *ctl);
+extern void parasite_prepare_sigframe(struct parasite_ctl_s *ctl, unsigned long sigframe_at);
 extern int parasite_syscall_seized(struct parasite_ctl_s *ctl,
 				   int nr, unsigned long *ret,
 				   unsigned long arg1,
