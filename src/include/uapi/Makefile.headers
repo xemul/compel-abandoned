@@ -1,0 +1,3 @@
+header-y += libcompel-loglevels.h
+header-y += libcompel-plugin.h
+header-y += libcompel.h

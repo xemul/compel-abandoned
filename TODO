@@ -1,0 +1,5 @@
+- file descriptors plugin
++ logging plugin
+- arguments pointers (need to invent)
+- shmem plugin
+- plugins list (optional)

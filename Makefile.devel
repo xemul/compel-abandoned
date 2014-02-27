@@ -1,0 +1,80 @@
+#
+# We assume that devel-include=<dir> and devel-lib=<dir> is passed
+# in command line, if not -- create default directory.
+#
+.PHONY: install-devel install-devel-headers
+.PHONY: install-devel-libs install-devel-lds
+
+devel-objs			+= std
+devel-objs			+= shmem
+devel-objs			+= fds
+
+devel-lds			+= pack.lds.S
+
+devel-dirs			:=
+devel-files			:=
+
+devel-default-includedir	:= devel/include
+devel-default-libdir		:= devel/lib
+
+#
+# Prepare direcory structure for headers and libraries.
+
+#
+# Headers
+ifeq ($(devel-include),)
+devel-include := $(devel-default-includedir)
+endif
+
+devel-hdr-dir := $(devel-include)/compel
+
+$(devel-hdr-dir):
+	$(E) "  GEN     " $@
+	$(Q) $(MKDIR) -p $(devel-hdr-dir)
+	@true
+
+#
+# Libraries
+ifeq ($(devel-lib),)
+devel-lib := $(devel-default-libdir)
+endif
+
+devel-lib-dir := $(devel-lib)/compel
+
+$(devel-lib-dir):
+	$(E) "  GEN     " $@
+	$(Q) $(MKDIR) -p $(devel-lib-dir)
+	@true
+
+#
+# Copying of headers
+install-devel-headers: $(devel-hdr-dir)
+	$(Q) $(MAKE) $(run) -f Makefile headers-dst-dir=$(devel-hdr-dir) install-headers
+	@true
+
+#
+# Libraries
+install-devel-objs :=
+define gen-plugin-lib-rule
+$(1)/$(2).compel.o: plugins/$(2)/built-in.o
+	$$(E) "  GEN     " $$@
+	$(Q) $(CP) -u $$^ $$@
+install-devel-objs += $(1)/$(2).compel.o
+endef
+
+$(foreach compel-obj,								\
+	$(devel-objs),								\
+	$(eval $(call gen-plugin-lib-rule,$(devel-lib-dir),$(compel-obj))))
+
+install-devel-libs: $(devel-lib-dir) $(install-devel-objs)
+	@true
+
+$(devel-lib-dir)/pack.lds.S: scripts/arch/$(ARCH)/pack.lds.S
+	$(E) "  GEN     " $@
+	$(Q) $(CP) -u $^ $@
+
+install-devel-lds: $(devel-lib-dir)/pack.lds.S
+	@true
+
+install-devel: plugins install-devel-headers install-devel-libs install-devel-lds
+	@true

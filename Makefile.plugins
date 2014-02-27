@@ -1,0 +1,41 @@
+plugins		+= std
+plugins		+= shmem
+plugins		+= fds
+
+dep-fds		:= std
+
+define gen-plugin-rule
+ifneq ($(2),)
+plugindep := plugins/$(2)/built-in.o
+else
+plugindep := 
+endif
+plugins/$(1)/%: $(EARLY-GEN) $$(plugindep)
+	$$(Q) $$(MAKE) $$(build)=plugins/$(1) $$@
+plugins/$(1)/built-in.o: $(EARLY-GEN) $$(plugindep)
+	$$(Q) $$(MAKE) $$(build)=plugins/$(1) all
+endef
+
+$(foreach plugin,							\
+	$(plugins),							\
+	$(eval $(call gen-plugin-rule,$(plugin),$(dep-$(plugin)))))
+
+all-plugins = $(patsubst %,plugins/%/built-in.o,$(plugins))
+plugins: $(all-plugins)
+	@true
+
+define gen-plugin-clean
+clean-plugin-$(1):
+	$$(Q) $$(MAKE) $$(build)=plugins/$(1) clean
+all-plugin-clean += clean-plugin-$(1)
+.PHONY: clean-plugin-$(1)
+endef
+
+$(foreach plugin,							\
+	$(plugins),							\
+	$(eval $(call gen-plugin-clean,$(plugin))))
+
+clean-plugins: $(all-plugin-clean)
+	@true
+
+.PHONY: plugins clean-plugins

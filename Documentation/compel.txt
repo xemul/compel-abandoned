@@ -1,0 +1,78 @@
+compel(1)
+========
+:doctype:       manpage
+:man source:    compel
+:man version:   0.0.1
+:man manual:    compel manual
+
+NAME
+----
+compel - compel a foreign process to execute code provided in binary blob
+
+SYNOPSIS
+--------
+*compel* 'command' ['options']
+
+*compel* run <file> -t <pid>
+
+*compel* pack <file1> [<file2>] [-L<dir>] [-llib1] [-o out]
+
+*compel* cflags
+
+*compel* ldflags
+
+DESCRIPTION
+-----------
+*compel* is a command line utility to execute binary blob in another process address space.
+
+Commands
+~~~~~~~~
+
+*run*::
+    Initiate execution procedure.
+
+*pack*::
+    Pack object file into a form suitable for execution.
+
+*cflags*::
+    Print the compiler flags needed to compile plugin object files.
+
+*ldflags*::
+    Print the linker flags needed to link plugin object files.
+
+OPTIONS
+-------
+
+Action 'run'
+~~~~~~~~~~~~
+
+<file>::
+    The name of binary blob object to be executed.
+
+*-t*, *--tree* 'pid'::
+    Destination task identified by 'pid'.
+
+*-a*, *--plugin-args* 'string'::
+    A 'string' used to for command line arguments passed to plugins entry point.
+
+Action 'pack'
+~~~~~~~~~~~~~
+
+*-L*, *--library-path* 'path'::
+    Add directory 'path' to the list of directories to be searched for
+    resources (*-l* option and linker scripts).
+
+*l*, *--library* 'name'::
+    Search the library named 'name' when linking. The following libraries
+    are always linked in even if not specified in command line: *std*.
+
+*-o*, *--out* 'path'::
+    The name for a packed file. If not provided 'a.compel.o' is used.
+
+AUTHOR
+------
+OpenVZ team.
+
+COPYING
+-------
+Copyright \(C) 2013-2014, Parallels Inc.

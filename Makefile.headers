@@ -1,0 +1,94 @@
+include plugins/include/uapi/Makefile.headers
+include src/include/uapi/Makefile.headers
+
+#
+# Headers which need to be prepared before we can use them.
+# Mostly because we share headers between libcompel and plugins,
+# thus to not duplicate code we create a symlinks.
+#
+# Anoter reason -- architecture dependent headers and user api:
+# some headers require architecture specific data.
+#
+plugins/include/uapi/asm: plugins/include/uapi/arch/$(ARCH)
+	$(E) "  GEN     " $@
+	$(shell $(CD) plugins/include/uapi && $(LN) -s arch/$(ARCH)/asm asm)
+plugins-headers-prepare-targets += plugins/include/uapi/asm
+
+plugins/include/uapi/asm-generic/int.h: src/include/asm-generic/int.h
+	$(E) "  GEN     " $@
+	$(shell $(CD) $(dir $@) && $(LN) -s ../../../../src/include/asm-generic/int.h int.h)
+plugins-headers-prepare-targets += plugins/include/uapi/asm-generic/int.h
+
+plugins/include/uapi/arch/$(ARCH)/asm/sigset.h: | plugins/include/uapi/asm
+plugins/include/uapi/arch/$(ARCH)/asm/sigset.h: src/lib/arch/$(ARCH)/include/asm/sigset.h
+	$(E) "  GEN     " $@
+	$(shell $(CD) $(dir $@) && $(LN) -s ../../../../../../src/lib/arch/$(ARCH)/include/asm/sigset.h sigset.h)
+plugins-headers-prepare-targets += plugins/include/uapi/arch/$(ARCH)/asm/sigset.h
+
+plugins-headers-prepare: $(plugins-headers-prepare-targets)
+	@true
+
+clean-plugins-headers-prepared:
+	$(E) "  CLEANUP " $(plugins-headers-prepare-targets)
+	$(Q) $(RM) plugins/include/uapi/asm
+	$(Q) $(RM) plugins/include/uapi/asm-generic/int.h
+	$(Q) $(RM) plugins/include/uapi/arch/$(ARCH)/asm/sigset.h
+
+.PHONY: plugins-headers-prepare clean-plugins-headers-prepared
+
+header-y-all		:=
+plugin-header-dir	:=
+plugin-subdirs		:=
+
+#
+# Headers installation helpers, takes <headers-dst-dir> as a directory
+# name where headers are to be installed
+
+# libcompel headers are copied without any modification
+define header-copy-to
+$(1)/$(2): $(3)/$(2)
+	$$(E) "  GEN     " $$@
+	$$(Q) $$(CP) -u $(3)/$(2) $(1)/$(2)
+header-y-all += $(1)/$(2)
+endef
+
+$(foreach header,$(header-y),								\
+	$(eval $(call header-copy-to,$(headers-dst-dir),$(header),src/include/uapi)))
+
+#
+# plugin headers require additional handling
+#
+# - generate subdirectories where needed
+#
+# - substitute "uapi/" in includes to directory name
+#   where headers will be installed
+define plugin-header-copy-to
+$(1)/$(2): $(3)/$(2)
+	$$(E) "  GEN     " $$@
+	$$(Q) $$(CAT) $$^ | $$(SED) -e 's/\"uapi\//\"compel\//g' > $$@
+ifneq ($(filter-out ./%,$(dir $(2))),)
+plugin-header-dir += $(dir $(2))
+endif
+header-y-all += $(1)/$(2)
+endef
+
+$(foreach header,$(plugin-header-y),								\
+	$(eval $(call plugin-header-copy-to,$(headers-dst-dir),$(header),plugins/include/uapi)))
+
+define gen-headers-subdirs
+$(1)/$(2):
+	$$(E) "  GEN     " $$@
+	$$(Q) $$(MKDIR) -p $$@
+plugin-subdirs += $(1)/$(2)
+endef
+
+$(foreach subdir,$(sort $(plugin-header-dir)),							\
+	$(eval $(call gen-headers-subdirs,$(headers-dst-dir),$(subdir))))
+
+$(plugin-subdirs): | plugins-headers-prepare
+$(header-y-all): | $(plugin-subdirs)
+
+install-headers: $(header-y-all)
+	@true
+
+.PHONY: install-headers
