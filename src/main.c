@@ -68,6 +68,8 @@ static int pack_compel_obj(char **obj, size_t nobj,
 		fgets(data, sizeof(data), f);
 		ret = data[0] == '\0' ? 0 : 1;
 		pclose(f);
+		if (!ret)
+			ret = libcompel_verify_packed(out ? : COMPEL_DEFAULT_PACK_OUT);
 	} else
 		pr_perror("Can't run pack");
 	if (ret)
