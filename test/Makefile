@@ -13,7 +13,7 @@ test: all
 .PHONY: all
 
 parasite.co: parasite.o
-	$(COMP) pack $< -l fds -l shmem -o $@ -L $(COMP_PLUGIN)
+	$(COMP) pack $< $(shell cat $(OBJ)/plugins) -o $@ -L $(COMP_PLUGIN)
 
 parasite.o: $(OBJ)/parasite.c
 	$(CC) -c -o $@ $< $(shell $(COMP) cflags) -I$(COMP_INC)
