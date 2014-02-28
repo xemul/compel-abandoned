@@ -15,12 +15,12 @@
 
 int fds_send(int *fds, int nr_fds)
 {
-	return fds_send_via(std_ctl_sock(), fds, nr_fds, 0);
+	return fds_send_via(std_ctl_sock(), fds, nr_fds);
 }
 
 int fds_recv(int *fds, int nr_fds)
 {
-	return fds_recv_via(std_ctl_sock(), fds, nr_fds, NULL);
+	return fds_recv_via(std_ctl_sock(), fds, nr_fds);
 }
 
 PLUGIN_REGISTER_DUMMY(fds)

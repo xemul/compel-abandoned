@@ -13,7 +13,7 @@
 
 int libcompel_send_fds(compel_exec_handle_t h, int *fds, int nr)
 {
-	return fds_send_via(ctl_sock((parasite_ctl_t *)h), fds, nr, false);
+	return fds_send_via(ctl_sock((parasite_ctl_t *)h), fds, nr);
 }
 
 int libcompel_send_fd(compel_exec_handle_t h, int fd)
@@ -23,7 +23,7 @@ int libcompel_send_fd(compel_exec_handle_t h, int fd)
 
 int libcompel_recv_fds(compel_exec_handle_t h, int *fds, int nr)
 {
-	return fds_recv_via(ctl_sock((parasite_ctl_t *)h), fds, nr, NULL);
+	return fds_recv_via(ctl_sock((parasite_ctl_t *)h), fds, nr);
 }
 
 int libcompel_recv_fd(compel_exec_handle_t h)
