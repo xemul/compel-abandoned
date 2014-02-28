@@ -1,2 +1,7 @@
-- shmem plugin
 - plugins list (optional)
+- check unresolved symbols on pack
+- unload parasite if it crashes (sigsetjmp/siglongjmp)
+- work without map_files dir (slow)
+- work without PTRACE_SEIZE (unsafe)
+- shmem master -> parasite passing
+- send info with FDs in plugin via callbak
