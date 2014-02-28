@@ -263,10 +263,9 @@ static int fixup_init(load_info_t *info)
 	return 0;
 }
 
-static int setup_load_info(load_info_t *info)
+static int setup_load_headers(load_info_t *info)
 {
 	unsigned int i;
-	int err;
 
 	info->sechdrs	= (void *)info->hdr + info->hdr->e_shoff;
 	info->secstrings= (void *)info->hdr + info->sechdrs[info->hdr->e_shstrndx].sh_offset;
@@ -284,41 +283,45 @@ static int setup_load_info(load_info_t *info)
 		}
 	}
 
-	/*
-	 * FIXME Check that we have all sections we need.
-	 */
-
-	err = rewrite_section_headers(info);
-	if (err)
-		return err;
-
 	if (info->index.sym == 0) {
 		pr_warn("Plugin has no symbols (stripped?)\n");
 		return -ENOEXEC;
 	}
 
-	err = simplify_symbols(info);
-	if (err)
-		return err;
-
-	err = apply_relocations(info);
-	if (err)
-		return err;
-
-	err = fixup_init(info);
-	if (err)
-		return err;
-
 	return 0;
+}
+
+static int load_elf_headers(load_info_t *info)
+{
+	int err = 0;
+
+	if (!err)
+		err = elf_header_check(info);
+	if (!err)
+		err = setup_load_headers(info);
+
+	/*
+	 * FIXME Check that we have all sections we need.
+	 */
+
+	if (!err)
+		err = rewrite_section_headers(info);
+	if (!err)
+		err = simplify_symbols(info);
+
+	return err;
 }
 
 int load_elf_plugin(load_info_t *info)
 {
-	int err;
+	int err = 0;
 
-	err = elf_header_check(info);
 	if (!err)
-		err = setup_load_info(info);
+		err = load_elf_headers(info);
+	if (!err)
+		err = apply_relocations(info);
+	if (!err)
+		err = fixup_init(info);
 
 	return err;
 }
