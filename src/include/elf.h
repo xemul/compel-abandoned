@@ -43,4 +43,6 @@ extern unsigned long lookup_elf_plugin_symbol(load_info_t *info, const char *sym
 #define lookup_elf_plugin_remote_symbol(info, name)	\
 	lookup_elf_plugin_symbol(info, name, false)
 
+extern int verify_elf_packed(char *path);
+
 #endif /* __COMPEL_ELF_H__ */

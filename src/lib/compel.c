@@ -55,3 +55,8 @@ int libcompel_exec(pid_t pid, char *path, void *arg_p, unsigned int arg_s)
 
 	return parasite_end(p);
 }
+
+int libcompel_verify_packed(char *path)
+{
+	return verify_elf_packed(path);
+}

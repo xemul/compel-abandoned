@@ -325,3 +325,40 @@ int load_elf_plugin(load_info_t *info)
 
 	return err;
 }
+
+/*
+ * Symbols verification after pack action.
+ */
+int verify_elf_packed(char *path)
+{
+	int plugin_fd, ret = -1;
+	load_info_t info = { };
+	struct stat plugin_st;
+
+	plugin_fd = open(path, O_RDONLY);
+	if (plugin_fd < 0) {
+		pr_perror("Can't open %s", path);
+		return -1;
+	}
+
+	if (fstat(plugin_fd, &plugin_st)) {
+		pr_perror("Failed to obtain statistics on %s", path);
+		goto err;
+	}
+
+	info.len = plugin_st.st_size;
+	info.hdr = mmap(NULL, plugin_st.st_size, PROT_READ | PROT_WRITE,
+			MAP_PRIVATE | MAP_FILE, plugin_fd, 0);
+	if ((void *)info.hdr == MAP_FAILED) {
+		pr_perror("Can't map %s", path);
+		goto err;
+	}
+
+	ret = load_elf_headers(&info);
+	if (ret)
+		goto err;
+err:
+	munmap((void *)info.hdr, info.len);
+	close(plugin_fd);
+	return ret;
+}

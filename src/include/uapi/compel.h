@@ -27,6 +27,11 @@ extern compel_exec_handle_t libcompel_exec_start(pid_t pid, char *path, void *ar
 extern int libcompel_exec_end(compel_exec_handle_t h);
 
 /*
+ * Plugins verification
+ */
+extern int libcompel_verify_packed(char *path);
+
+/*
  * Communication with parasite
  */
 
