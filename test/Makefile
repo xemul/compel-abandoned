@@ -1,3 +1,11 @@
+ifeq ($(strip $(V)),)
+	E = @echo
+	Q = @
+else
+	E = @\#
+	Q =
+endif
+
 COMP=../compel
 COMP_DEV=../devel/
 COMP_LIB=../src/lib/
@@ -13,13 +21,13 @@ test: all
 .PHONY: all
 
 parasite.co: parasite.o
-	$(COMP) pack $< $(shell cat $(OBJ)/plugins) -o $@ -L $(COMP_PLUGIN)
+	$(Q) $(COMP) pack $< $(shell cat $(OBJ)/plugins) -o $@ -L $(COMP_PLUGIN)
 
 parasite.o: $(OBJ)/parasite.c
-	$(CC) -c -o $@ $< $(shell $(COMP) cflags) -I$(COMP_INC)
+	$(Q) $(CC) -c -o $@ $< $(shell $(COMP) cflags) -I$(COMP_INC)
 
 piggie: $(OBJ)/piggie.c
-	$(CC) -o $@ $< -I$(COMP_INC) -lcompel -L$(COMP_LIB)
+	$(Q) $(CC) -o $@ $< -I$(COMP_INC) -lcompel -L$(COMP_LIB)
 
 clean:
 	rm -f parasite.o
