@@ -5,6 +5,7 @@ TESTS="\
        async_simple\
        sync_args\
        async_fds\
+       async_shmem\
 "
 
 RES=""
