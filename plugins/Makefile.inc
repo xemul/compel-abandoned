@@ -1,6 +1,4 @@
-cflags-y	+= -fpie -Wstrict-prototypes -Wa,--noexecstack
-cflags-y	+= -fno-jump-tables -nostdlib -fomit-frame-pointer
-
-#
+include scripts/pie-build.mak
+cflags-y	+= $(PIE_BUILD_FLAGS)
 # For user api provided by plugins
 cflags-y	+= -iquote plugins/include

@@ -17,6 +17,7 @@
 #include "uapi/compel.h"
 #include "err.h"
 #include "log.h"
+#include "config.h"
 
 #define COMPEL_DEFAULT_DIST	"./dist"
 #define COMPEL_DEFAULT_LIB_DIR	"/usr/share/compel"
@@ -193,9 +194,7 @@ int main(int argc, char *argv[])
 	}
 
 	if (!strcmp(action, "cflags")) {
-		printf("-fpie -Wstrict-prototypes "
-		       "-Wa,--noexecstack -fno-jump-tables "
-		       "-nostdlib -fomit-frame-pointer");
+		printf("%s", PIE_BUILD_FLAGS);
 		return 0;
 	}
 
