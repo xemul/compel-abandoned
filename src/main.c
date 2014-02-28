@@ -205,7 +205,7 @@ int main(int argc, char *argv[])
 
 usage:
 	printf("Usage:\n");
-	printf("  compel run -f <file> -t <pid>\n");
+	printf("  compel run -f <file> -p <pid>\n");
 	printf("  compel pack <files...> [-L<dir>] [-llibs] [-o out]\n");
 	printf("  compel cflags\n");
 	printf("  compel ldflags\n");
