@@ -1,3 +1,5 @@
+This is a dead repo. Now COMPEL lives in https://github.com/xemul/criu/compel
+
 Compel
 ======
 
